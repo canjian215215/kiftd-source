@@ -69,7 +69,16 @@ public class LogUtil {
 	 */
 	public void writeException(Exception e) {
 		if (ConfigureReader.instance().inspectLogLevel(LogLevel.Runtime_Exception)) {
-			writeToLog("Exception", "[" + e + "]:" + e.getMessage());
+			StringBuffer exceptionInfo = new StringBuffer(e.toString());
+			StackTraceElement[] stes = e.getStackTrace();
+			for (int i = 0; i < stes.length && i < 10; i++) {
+				StackTraceElement ste = stes[i];
+				exceptionInfo.append("\r\n	at "+ste.getClassName()+"."+ste.getMethodName()+"("+ste.getFileName()+":"+ste.getLineNumber()+")");
+			}
+			if(stes.length > 10) {
+				exceptionInfo.append("\r\n......");
+			}
+			writeToLog("Exception", exceptionInfo.toString());
 		}
 	}
 
@@ -274,8 +283,9 @@ public class LogUtil {
 	 * @param f
 	 *            kohgylw.kiftd.server.model.Node 下载目标
 	 */
-	public void writeDownloadFileByKeyEvent(Node f) {
+	public void writeDownloadFileByKeyEvent(HttpServletRequest request, Node f) {
 		if (ConfigureReader.instance().inspectLogLevel(LogLevel.Event)) {
+			String ip = idg.getIpAddr(request);
 			writerThread.execute(() -> {
 				Folder folder = fm.queryById(f.getFileParentFolder());
 				List<Folder> l = fu.getParentList(folder.getFolderId());
@@ -283,8 +293,8 @@ public class LogUtil {
 				for (Folder i : l) {
 					pl = pl + i.getFolderName() + "/";
 				}
-				String content = ">OPERATE [Download file By Shared URL]\r\n>PATH [" + pl + folder.getFolderName()
-						+ "]\r\n>NAME [" + f.getFileName() + "]";
+				String content = ">IP [" + ip + "]\r\n>OPERATE [Download file By Shared URL]\r\n>PATH [" + pl
+						+ folder.getFolderName() + "]\r\n>NAME [" + f.getFileName() + "]";
 				writeToLog("Event", content);
 			});
 		}
@@ -396,14 +406,13 @@ public class LogUtil {
 			String a = account;
 			String ip = idg.getIpAddr(request);
 			writerThread.execute(() -> {
-				Folder folder = fm.queryById(f.getFolderParent());
-				List<Folder> l = fu.getParentList(folder.getFolderId());
+				List<Folder> l = fu.getParentList(f.getFolderId());
 				String pl = new String();
 				for (Folder i : l) {
 					pl = pl + i.getFolderName() + "/";
 				}
 				String content = ">IP [" + ip + "]\r\n>ACCOUNT [" + a + "]\r\n>OPERATE [Move Folder]\r\n>NEW PATH ["
-						+ pl + folder.getFolderName() + "/" + f.getFolderName() + "]";
+						+ pl + f.getFolderName() + "]";
 				writeToLog("Event", content);
 			});
 		}
@@ -499,8 +508,8 @@ public class LogUtil {
 		if (ConfigureReader.instance().inspectLogLevel(LogLevel.Event)) {
 			String ip = idg.getIpAddr(request);
 			writerThread.execute(() -> {
-				String content = ">IP [" + ip + "]\r\n>OPERATE [Sign Up]\r\n>NEW ACCOUNT [" + account + "]\r\n>PASSWORD ["
-						+ password + "]";
+				String content = ">IP [" + ip + "]\r\n>OPERATE [Sign Up]\r\n>NEW ACCOUNT [" + account
+						+ "]\r\n>PASSWORD [" + password + "]";
 				writeToLog("Event", content);
 			});
 		}
